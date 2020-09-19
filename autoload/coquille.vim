@@ -71,15 +71,17 @@ function! coquille#CoqideMapping()
     "" ---  CoqIde key bindings
     "" Unreliable: doesn't work with all terminals, doesn't work through tmux,
     ""  etc.
-    map <buffer> <silent> <C-A-Up>    :CoqUndo<CR>
-    map <buffer> <silent> <C-A-Left>  :CoqToCursor<CR>
-    map <buffer> <silent> <C-A-Down>  :CoqNext<CR>
-    map <buffer> <silent> <C-A-Right> :CoqToCursor<CR>
+    map <buffer> <silent> <F2>   :CoqLaunch<CR>
+    map <buffer> <silent> <C-K>  :CoqUndo<CR>
+    map <buffer> <C-H>  :Coq 
+    map <buffer> <silent> <C-J>  :CoqNext<CR>
+    map <buffer> <silent> <C-L>  :CoqToCursor<CR>
 
-    imap <buffer> <silent> <C-A-Up>    <C-\><C-o>:CoqUndo<CR>
-    imap <buffer> <silent> <C-A-Left>  <C-\><C-o>:CoqToCursor<CR>
-    imap <buffer> <silent> <C-A-Down>  <C-\><C-o>:CoqNext<CR>
-    imap <buffer> <silent> <C-A-Right> <C-\><C-o>:CoqToCursor<CR>
+    imap <buffer> <silent> <F2> <C-\><C-o>:CoqLaunch<CR>
+    imap <buffer> <silent> <C-K>    <C-\><C-o>:CoqUndo<CR>
+    imap <buffer> <C-H>  <C-\><C-o>:Coq 
+    imap <buffer> <silent> <C-J>  <C-\><C-o>:CoqNext<CR>
+    imap <buffer> <silent> <C-L> <C-\><C-o>:CoqToCursor<CR>
 endfunction
 
 function! coquille#Launch(...)
