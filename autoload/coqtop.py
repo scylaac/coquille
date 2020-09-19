@@ -12,6 +12,10 @@ Err = namedtuple('Err', ['err'])
 Inl = namedtuple('Inl', ['val'])
 Inr = namedtuple('Inr', ['val'])
 
+# Just a constant id used to fill in the blanks.
+# We do not use coqide's multiplexing function.
+RouteId = namedtuple('RouteId', ['id'])
+
 StateId = namedtuple('StateId', ['id'])
 Option = namedtuple('Option', ['val'])
 
@@ -104,7 +108,7 @@ def encode_value(v):
         xml = build('bool', str(v).lower())
         xml.text = str(v)
         return xml
-    elif isinstance(v, str):
+    elif isinstance(v, str) or isinstance(v, unicode):
         xml = build('string')
         xml.text = v
         return xml
@@ -114,6 +118,8 @@ def encode_value(v):
         return xml
     elif isinstance(v, StateId):
         return build('state_id', str(v.id))
+    elif isinstance(v, RouteId):
+        return build('route_id', str(v.id))
     elif isinstance(v, list):
         return build('list', None, [encode_value(c) for c in v])
     elif isinstance(v, Option):
@@ -165,26 +171,43 @@ def get_answer():
     while True:
         try:
             data += os.read(fd, 0x4000)
+            #print escape(data)
             try:
                 elt = ET.fromstring('<coqtoproot>' + escape(data) + '</coqtoproot>')
                 shouldWait = True
                 valueNode = None
                 messageNode = None
                 for c in elt:
+                    #print c
                     if c.tag == 'value':
                         shouldWait = False
                         valueNode = c
+
+                    # Modified parsing routine for returned message from query (for coq 8.12):
+                    # The original "<message>...</message>" node is now encapsulated in 
+                    # a "<feedback>...<feedback_content>...</feedback_content></feedback>" structure.
+                    if c.tag == 'feedback' and len(c) > 1\
+                       and c[1].tag == "feedback_content" and c[1].attrib["val"] == "message":
+                        c_msgNode = c[1][0]
+                        #print c_msgNode
+                        if messageNode is not None:
+                            messageNode = messageNode + "\n\n" + parse_value(c_msgNode[2])
+                        else:
+                            messageNode = parse_value(c_msgNode[2])
+                    """
                     if c.tag == 'message':
                         if messageNode is not None:
                             messageNode = messageNode + "\n\n" + parse_value(c[2])
                         else:
                             messageNode = parse_value(c[2])
+                    """
                 if shouldWait:
                     continue
                 else:
                     vp = parse_response(valueNode)
                     if messageNode is not None:
                         if isinstance(vp, Ok):
+                            #print messageNode
                             return Ok(vp.val, messageNode)
                     return vp
             except ET.ParseError:
@@ -206,8 +229,7 @@ def send_cmd(cmd):
 def restart_coq(*args):
     global coqtop, root_state, state_id
     if coqtop: kill_coqtop()
-    options = [ 'coqtop'
-              , '-ideslave'
+    options = [ 'coqidetop'
               , '-main-channel'
               , 'stdfds'
               , '-async-proofs'
@@ -247,7 +269,7 @@ def cur_state():
 
 def advance(cmd, encoding = 'utf-8'):
     global state_id
-    r = call('Add', ((cmd, -1), (cur_state(), True)), encoding)
+    r = call('Add', ((cmd.decode(encoding), -1), (cur_state(), True)), encoding)
     if r is None:
         return r
     if isinstance(r, Err):
@@ -265,7 +287,8 @@ def rewind(step = 1):
     return call('Edit_at', state_id)
 
 def query(cmd, encoding = 'utf-8'):
-    r = call('Query', (cmd, cur_state()), encoding)
+    # Feed a meaningless routeid to satisfy the new protocol.
+    r = call('Query', (RouteId (id=0), (cmd, cur_state())), encoding)
     return r
 
 def goals():
