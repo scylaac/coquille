@@ -70,7 +70,7 @@ if version >= 508 || !exists("did_coq_goals_syntax_inits")
 
  " WORK LEFT
  HiLink coqNumberGoals               Todo
- HiLink coqGoalLine                  Todo
+ HiLink coqGoalLine                  coqTerm
 
  " GOAL IDENTIFIER
  HiLink coqGoalNumber                Underlined
